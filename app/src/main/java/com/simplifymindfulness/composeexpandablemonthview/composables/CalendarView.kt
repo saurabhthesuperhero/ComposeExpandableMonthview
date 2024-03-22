@@ -18,6 +18,8 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material3.Button
@@ -234,11 +236,43 @@ fun MonthView(selectedDate: MutableState<LocalDate>) {
     )
 
     Column {
+        // Row for displaying the month name and navigation buttons
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = {
+                coroutineScope.launch {
+                    val previousMonthIndex = (pagerState.currentPage - 1).coerceAtLeast(0)
+                    pagerState.animateScrollToPage(previousMonthIndex)
+                }
+            }) {
+                Icon(Icons.Default.ArrowBack, contentDescription = "Previous Month")
+            }
+
+            // Display the current month's name
+            Text(
+                text = months[pagerState.currentPage].month.name + " " + months[pagerState.currentPage].year,
+                style = MaterialTheme.typography.headlineMedium
+            )
+
+            IconButton(onClick = {
+                coroutineScope.launch {
+                    val nextMonthIndex = (pagerState.currentPage + 1).coerceAtMost(months.size - 1)
+                    pagerState.animateScrollToPage(nextMonthIndex)
+                }
+            }) {
+                Icon(Icons.Default.ArrowForward, contentDescription = "Next Month")
+            }
+        }
+
         HorizontalPager(
             state = pagerState,
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f)
         ) { page ->
             val month = months[page]
             val daysInMonth = getDaysOfMonth(month)
