@@ -347,6 +347,102 @@ fun MonthView(selectedDate: MutableState<LocalDate>) {
     }
 }
 
+//@Composable
+//fun MonthGrid(daysInMonth: List<LocalDate>, selectedDate: MutableState<LocalDate>, today: LocalDate) {
+//    Column {
+//        // Display days of the week headers
+//        Row(modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 8.dp)) {
+//            listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat").forEach { dayName ->
+//                Text(
+//                    text = dayName,
+//                    modifier = Modifier
+//                        .weight(1f)
+//                        .align(Alignment.CenterVertically),
+//                    textAlign = TextAlign.Center
+//                )
+//            }
+//        }
+//
+//        // Days grid
+//        for (week in daysInMonth.chunked(7)) {
+//            Row {
+//                for (day in week) {
+//                    Box(
+//                        modifier = Modifier
+//                            .weight(1f)
+//                            .padding(4.dp)
+//                            .clip(CircleShape)
+//                            .background(if (day == selectedDate.value) MaterialTheme.colorScheme.primary else Color.Transparent)
+//                            .clickable { selectedDate.value = day },
+//                        contentAlignment = Alignment.Center
+//                    ) {
+//                        Text(
+//                            text = day.dayOfMonth.toString(),
+//                            color = if (day == today) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onSurface,
+//                            fontWeight = if (day == today) FontWeight.Bold else FontWeight.Normal
+//                        )
+//                    }
+//                }
+//            }
+//        }
+//    }
+//}
+
+//@Composable
+//fun MonthGrid(daysInMonth: List<LocalDate>, selectedDate: MutableState<LocalDate>, today: LocalDate) {
+//    Column {
+//        // Display days of the week headers
+//        Row(modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 8.dp)) {
+//            listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat").forEach { dayName ->
+//                Text(
+//                    text = dayName,
+//                    modifier = Modifier
+//                        .weight(1f)
+//                        .align(Alignment.CenterVertically),
+//                    textAlign = TextAlign.Center
+//                )
+//            }
+//        }
+//
+//        // Calculate placeholders for the start of the month
+//        val startDayOfWeek = daysInMonth.first().dayOfWeek.value % 7 // Adjust based on your week start day (e.g., Sunday in the US is 7, which modulo 7 is 0)
+//        val placeholdersBefore = mutableListOf<LocalDate?>().apply {
+//            repeat(startDayOfWeek) { add(null) } // Add null placeholders for days before the first of the month
+//        }
+//
+//        val allDays = placeholdersBefore + daysInMonth
+//
+//        // Days grid
+//        allDays.chunked(7).forEach { week ->
+//            Row {
+//                week.forEach { day ->
+//                    if (day != null) {
+//                        Box(
+//                            modifier = Modifier
+//                                .weight(1f)
+//                                .padding(4.dp)
+//                                .clip(CircleShape)
+//                                .background(if (day == selectedDate.value) MaterialTheme.colorScheme.primary else Color.Transparent)
+//                                .clickable { selectedDate.value = day },
+//                            contentAlignment = Alignment.Center
+//                        ) {
+//                            Text(
+//                                text = day.dayOfMonth.toString(),
+//                                color = if (day == today) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onSurface,
+//                                fontWeight = if (day == today) FontWeight.Bold else FontWeight.Normal
+//                            )
+//                        }
+//                    } else {
+//                        Box(modifier = Modifier.weight(1f).padding(4.dp)) {
+//                            // Placeholder box for alignment, can be empty or have a placeholder visual
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//    }
+//}
+
 @Composable
 fun MonthGrid(daysInMonth: List<LocalDate>, selectedDate: MutableState<LocalDate>, today: LocalDate) {
     Column {
@@ -364,9 +460,10 @@ fun MonthGrid(daysInMonth: List<LocalDate>, selectedDate: MutableState<LocalDate
         }
 
         // Days grid
-        for (week in daysInMonth.chunked(7)) {
+        val weeks = daysInMonth.chunked(7)
+        weeks.forEachIndexed { index, week ->
             Row {
-                for (day in week) {
+                week.forEach { day ->
                     Box(
                         modifier = Modifier
                             .weight(1f)
@@ -381,6 +478,18 @@ fun MonthGrid(daysInMonth: List<LocalDate>, selectedDate: MutableState<LocalDate
                             color = if (day == today) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onSurface,
                             fontWeight = if (day == today) FontWeight.Bold else FontWeight.Normal
                         )
+                    }
+                }
+                // If this is the last week, add empty boxes for remaining days
+                if (index == weeks.lastIndex) {
+                    for (i in week.size until 7) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(4.dp)
+                        ) {
+                            // Empty Box to keep dates aligned left
+                        }
                     }
                 }
             }
