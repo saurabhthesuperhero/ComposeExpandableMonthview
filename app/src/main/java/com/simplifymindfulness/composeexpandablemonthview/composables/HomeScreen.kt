@@ -8,6 +8,7 @@ import java.time.LocalDate
 @Composable
 fun HomeScreen(){
     val selectedDate = rememberSaveable { mutableStateOf(LocalDate.now()) }
-    CalendarView(selectedDate = selectedDate)
+//    CalendarView(selectedDate = selectedDate)
+    MonthView(selectedDate = selectedDate)
 
 }

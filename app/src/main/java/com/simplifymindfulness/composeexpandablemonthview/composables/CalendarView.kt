@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Today
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -27,6 +28,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -40,8 +43,10 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
+import java.time.temporal.ChronoUnit
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -206,4 +211,99 @@ fun getWeeksFromToday(today: LocalDate, pastWeeksCount: Int): List<List<LocalDat
         currentStartOfWeek = currentStartOfWeek.plusWeeks(1)
     }
     return weeks
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@Composable
+fun MonthView(selectedDate: MutableState<LocalDate>) {
+    val today = LocalDate.now()
+    val currentYearMonth = remember { mutableStateOf(YearMonth.from(today)) }
+    val months = remember { mutableStateListOf<YearMonth>() }
+    val coroutineScope = rememberCoroutineScope()
+
+    if (months.isEmpty()) {
+        val startMonth = currentYearMonth.value.minusMonths(6)
+        for (i in 0..12) {
+            months.add(startMonth.plusMonths(i.toLong()))
+        }
+    }
+
+    val pagerState = rememberPagerState(
+        initialPage = months.indexOf(currentYearMonth.value),
+        pageCount = { months.size }
+    )
+
+    Column {
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+        ) { page ->
+            val month = months[page]
+            val daysInMonth = getDaysOfMonth(month)
+            MonthGrid(daysInMonth = daysInMonth, selectedDate = selectedDate, today = today)
+        }
+
+        Button(
+            onClick = {
+                coroutineScope.launch {
+                    pagerState.animateScrollToPage(months.indexOf(YearMonth.from(today)))
+                    selectedDate.value = today
+                }
+            },
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        ) {
+            Text("Go to Today")
+        }
+    }
+}
+
+@Composable
+fun MonthGrid(daysInMonth: List<LocalDate>, selectedDate: MutableState<LocalDate>, today: LocalDate) {
+    Column {
+        // Display days of the week headers
+        Row(modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 8.dp)) {
+            listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat").forEach { dayName ->
+                Text(
+                    text = dayName,
+                    modifier = Modifier
+                        .weight(1f)
+                        .align(Alignment.CenterVertically),
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+
+        // Days grid
+        for (week in daysInMonth.chunked(7)) {
+            Row {
+                for (day in week) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(4.dp)
+                            .clip(CircleShape)
+                            .background(if (day == selectedDate.value) MaterialTheme.colorScheme.primary else Color.Transparent)
+                            .clickable { selectedDate.value = day },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = day.dayOfMonth.toString(),
+                            color = if (day == today) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onSurface,
+                            fontWeight = if (day == today) FontWeight.Bold else FontWeight.Normal
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+fun getDaysOfMonth(yearMonth: YearMonth): List<LocalDate> {
+    val startOfMonth = yearMonth.atDay(1)
+    val endOfMonth = yearMonth.atEndOfMonth()
+    val daysInMonth = ChronoUnit.DAYS.between(startOfMonth, endOfMonth) + 1
+    return List(daysInMonth.toInt()) { i -> startOfMonth.plusDays(i.toLong()) }
 }
