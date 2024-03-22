@@ -236,6 +236,70 @@ fun MonthView(selectedDate: MutableState<LocalDate>) {
     )
 
     Column {
+        val displayText = when {
+            selectedDate.value == today -> "Today"
+            selectedDate.value == today.plusDays(1) -> "Tomorrow"
+            else -> {
+                val dateFormat = if (selectedDate.value.year == today.year) {
+                    DateTimeFormatter.ofPattern("d MMM", Locale.getDefault())
+                } else {
+                    DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault())
+                }
+                selectedDate.value.format(dateFormat)
+            }
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically  // Add this line
+
+        ) {
+            Column() {
+                Text(
+                    text = displayText,
+                    style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp)
+                )
+
+                val weekName =
+                    selectedDate.value.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault())
+                Text(
+                    text = weekName,
+                    color = MaterialTheme.colorScheme.secondary,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Light),
+                    modifier = Modifier.padding(start = 20.dp, bottom = 16.dp)
+                )
+            }
+
+            // Add this IconButton
+            IconButton(onClick = {
+                // Scroll back to today's date
+                coroutineScope.launch {
+                    pagerState.animateScrollToPage(months.indexOf(YearMonth.from(today)))
+                    selectedDate.value = today
+                }
+                // Set today as the selected date
+                selectedDate.value = today
+            }) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.CalendarToday, // Use ImageVector for the icon
+                        contentDescription = "Scroll to Today",
+                        tint = MaterialTheme.colorScheme.secondary
+                    )
+                    Text(
+                        text = today.dayOfMonth.toString(), // Display today's day
+                        style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.secondary), modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+            }
+
+        }
+
         // Row for displaying the month name and navigation buttons
         Row(
             modifier = Modifier
@@ -279,17 +343,7 @@ fun MonthView(selectedDate: MutableState<LocalDate>) {
             MonthGrid(daysInMonth = daysInMonth, selectedDate = selectedDate, today = today)
         }
 
-        Button(
-            onClick = {
-                coroutineScope.launch {
-                    pagerState.animateScrollToPage(months.indexOf(YearMonth.from(today)))
-                    selectedDate.value = today
-                }
-            },
-            modifier = Modifier.align(Alignment.CenterHorizontally)
-        ) {
-            Text("Go to Today")
-        }
+
     }
 }
 
