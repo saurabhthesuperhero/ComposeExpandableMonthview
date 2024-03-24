@@ -13,13 +13,17 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBackIos
+import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material3.Button
@@ -39,8 +43,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.capitalize
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.toLowerCase
+import androidx.compose.ui.text.toUpperCase
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
@@ -97,7 +104,12 @@ fun CalendarView(selectedDate: MutableState<LocalDate>) {
                     text = displayText,
                     style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp)
+                    modifier = Modifier.padding(
+                        start = 16.dp,
+                        end = 16.dp,
+                        top = 16.dp,
+                        bottom = 8.dp
+                    )
                 )
 
                 val weekName =
@@ -127,7 +139,8 @@ fun CalendarView(selectedDate: MutableState<LocalDate>) {
                     )
                     Text(
                         text = today.dayOfMonth.toString(), // Display today's day
-                        style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.secondary), modifier = Modifier.padding(top = 4.dp)
+                        style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.secondary),
+                        modifier = Modifier.padding(top = 4.dp)
                     )
                 }
             }
@@ -152,7 +165,12 @@ fun CalendarView(selectedDate: MutableState<LocalDate>) {
         }
         Spacer(modifier = Modifier.height(8.dp))
 
-        HorizontalPager(state = pagerState, modifier = Modifier.fillMaxWidth().height(60.dp)) { page ->
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(60.dp)
+        ) { page ->
             val weekDates = weeks[page]
 
             Row(
@@ -188,7 +206,9 @@ fun CalendarView(selectedDate: MutableState<LocalDate>) {
                         Text(
                             text = date.dayOfMonth.toString(),
                             textAlign = TextAlign.Center,
-                            color = if (isFutureDate) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurface  // Change text color for future dates
+                            color = if (isFutureDate) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) else if (date == today) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onSurface  // Change text color for future dates,
+                            , fontWeight = if (date == today) FontWeight.Bold else FontWeight.Normal
+
 
                         )
                     }
@@ -262,7 +282,12 @@ fun MonthView(selectedDate: MutableState<LocalDate>) {
                     text = displayText,
                     style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp)
+                    modifier = Modifier.padding(
+                        start = 16.dp,
+                        end = 16.dp,
+                        top = 16.dp,
+                        bottom = 8.dp
+                    )
                 )
 
                 val weekName =
@@ -293,7 +318,8 @@ fun MonthView(selectedDate: MutableState<LocalDate>) {
                     )
                     Text(
                         text = today.dayOfMonth.toString(), // Display today's day
-                        style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.secondary), modifier = Modifier.padding(top = 4.dp)
+                        style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.secondary),
+                        modifier = Modifier.padding(top = 4.dp)
                     )
                 }
             }
@@ -314,13 +340,23 @@ fun MonthView(selectedDate: MutableState<LocalDate>) {
                     pagerState.animateScrollToPage(previousMonthIndex)
                 }
             }) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Previous Month")
+                Icon(Icons.Default.ArrowBackIos, contentDescription = "Previous Month",
+                    modifier = Modifier.size(18.dp) // Adjust the size as needed
+                )
+
             }
 
             // Display the current month's name
             Text(
-                text = months[pagerState.currentPage].month.name + " " + months[pagerState.currentPage].year,
-                style = MaterialTheme.typography.headlineMedium
+                text = months[pagerState.currentPage].month.name.toCapitalCase() + " " + months[pagerState.currentPage].year,
+                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(
+                    start = 16.dp,
+                    end = 16.dp,
+                    top = 16.dp,
+                    bottom = 8.dp
+                )
             )
 
             IconButton(onClick = {
@@ -329,7 +365,9 @@ fun MonthView(selectedDate: MutableState<LocalDate>) {
                     pagerState.animateScrollToPage(nextMonthIndex)
                 }
             }) {
-                Icon(Icons.Default.ArrowForward, contentDescription = "Next Month")
+                Icon(Icons.Default.ArrowForwardIos, contentDescription = "Next Month",
+                    modifier = Modifier.size(18.dp) // Adjust the size as needed
+                )
             }
         }
 
@@ -348,7 +386,11 @@ fun MonthView(selectedDate: MutableState<LocalDate>) {
 }
 
 @Composable
-fun MonthGrid(daysInMonth: List<LocalDate>, selectedDate: MutableState<LocalDate>, today: LocalDate) {
+fun MonthGrid(
+    daysInMonth: List<LocalDate>,
+    selectedDate: MutableState<LocalDate>,
+    today: LocalDate
+) {
     Column {
         // Display days of the week headers
         Row(modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 8.dp)) {
@@ -366,20 +408,37 @@ fun MonthGrid(daysInMonth: List<LocalDate>, selectedDate: MutableState<LocalDate
         // Days grid
         val weeks = daysInMonth.chunked(7)
         weeks.forEachIndexed { index, week ->
-            Row {
+            Row (
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp)  // Add horizontal padding
+            ){
                 week.forEach { day ->
+                    val isFutureDate = day.isAfter(today)
+                    val interactionSource = remember { MutableInteractionSource() }
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .padding(4.dp)
+                            .height(48.dp)  // Add a fixed height
                             .clip(CircleShape)
-                            .background(if (day == selectedDate.value) MaterialTheme.colorScheme.primary else Color.Transparent)
-                            .clickable { selectedDate.value = day },
+                            .background(
+                                if (day == selectedDate.value) MaterialTheme.colorScheme.primaryContainer  // Non-active color for future dates
+                                else Color.Transparent
+                            )
+                            .clickable(
+                                enabled = !isFutureDate,  // Disable click for future dates
+                                interactionSource = interactionSource,
+                                indication = null
+                            ) {
+                                if (!isFutureDate) {
+                                    selectedDate.value = day
+                                }
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = day.dayOfMonth.toString(),
-                            color = if (day == today) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onSurface,
+                            color = if (isFutureDate) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) else if (day == today) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onSurface,
                             fontWeight = if (day == today) FontWeight.Bold else FontWeight.Normal
                         )
                     }
@@ -407,4 +466,8 @@ fun getDaysOfMonth(yearMonth: YearMonth): List<LocalDate> {
     val endOfMonth = yearMonth.atEndOfMonth()
     val daysInMonth = ChronoUnit.DAYS.between(startOfMonth, endOfMonth) + 1
     return List(daysInMonth.toInt()) { i -> startOfMonth.plusDays(i.toLong()) }
+}
+fun String.toCapitalCase(): String {
+    if (this.isEmpty()) return this
+    return this.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
 }
