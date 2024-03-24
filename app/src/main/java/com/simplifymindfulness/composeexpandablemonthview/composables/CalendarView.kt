@@ -15,12 +15,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIos
 import androidx.compose.material.icons.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -32,6 +34,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,6 +42,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -48,17 +52,11 @@ import java.time.format.TextStyle
 import java.time.temporal.ChronoUnit
 import java.util.Locale
 
-@Composable
-fun CalendarView(selectedDate: MutableState<LocalDate>) {
-    WeekView(selectedDate)
-    MonthView(selectedDate)
-}
-
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun WeekView(selectedDate: MutableState<LocalDate>) {
+fun CalendarView(selectedDate: MutableState<LocalDate>) {
+    val isMonthViewExpanded = remember { mutableStateOf(false) }
     val today = LocalDate.now()
-    Log.e("TAG", "CalendarView: $today")
 
     val weeks = getWeeksFromToday(today, 52)
 
@@ -72,80 +70,68 @@ fun WeekView(selectedDate: MutableState<LocalDate>) {
 
     val coroutineScopeWeekView = rememberCoroutineScope()
 
+    //month related
+    val currentYearMonth = remember { mutableStateOf(YearMonth.from(today)) }
+    val months = remember { mutableStateListOf<YearMonth>() }
+    val coroutineScopeMonthView = rememberCoroutineScope()
+
+    if (months.isEmpty()) {
+        val startMonth = currentYearMonth.value.minusMonths(6)
+        for (i in 0..12) {
+            months.add(startMonth.plusMonths(i.toLong()))
+        }
+    }
+
+    val pagerStateMonthView = rememberPagerState(
+        initialPage = months.indexOf(currentYearMonth.value),
+        pageCount = { months.size }
+    )
+
+    CalendarHeaderView(
+        selectedDate = selectedDate,
+        onExpandCollapsedClicked = {
+            // This will vary based on whether the month view is expanded or not
+            if (isMonthViewExpanded.value) {
+                // Scroll month view to today
+            } else {
+                // Scroll week view to today
+            }
+            // Toggle the view mode
+            isMonthViewExpanded.value = !isMonthViewExpanded.value
+        },
+        onScrollToTodayClicked = {
+            coroutineScopeWeekView.launch {
+                pagerStateWeekView.scrollToPage(weeks.size - 1)
+            }
+            coroutineScopeMonthView.launch {
+                pagerStateMonthView.animateScrollToPage(months.indexOf(YearMonth.from(today)))
+                selectedDate.value = today
+            }
+
+        }
+    )
+
+    if (isMonthViewExpanded.value) {
+        MonthView(selectedDate, pagerStateMonthView, coroutineScopeMonthView, months)
+    } else {
+        WeekView(selectedDate, pagerStateWeekView, coroutineScopeWeekView, weeks)
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun WeekView(
+    selectedDate: MutableState<LocalDate>,
+    pagerStateWeekView: PagerState,
+    coroutineScopeWeekView: CoroutineScope,
+    weeks: List<List<LocalDate>>
+) {
+    val today = LocalDate.now()
+    Log.e("TAG", "CalendarView: $today")
+
+
 
     Column(modifier = Modifier.fillMaxWidth()) {
-        val displayText = when {
-            selectedDate.value == today -> "Today"
-            selectedDate.value == today.plusDays(1) -> "Tomorrow"
-            else -> {
-                val dateFormat = if (selectedDate.value.year == today.year) {
-                    DateTimeFormatter.ofPattern("d MMM", Locale.getDefault())
-                } else {
-                    DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault())
-                }
-                selectedDate.value.format(dateFormat)
-            }
-        }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically  // Add this line
-
-        ) {
-            Column() {
-                Text(
-                    text = displayText,
-                    style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(
-                        start = 16.dp,
-                        end = 16.dp,
-                        top = 16.dp,
-                        bottom = 8.dp
-                    )
-                )
-
-                val weekName =
-                    selectedDate.value.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault())
-                Text(
-                    text = weekName,
-                    color = MaterialTheme.colorScheme.secondary,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Light),
-                    modifier = Modifier.padding(start = 20.dp, bottom = 16.dp)
-                )
-            }
-
-            // Add this IconButton
-            IconButton(onClick = {
-                // Scroll back to today's date
-                coroutineScopeWeekView.launch {
-                    pagerStateWeekView.scrollToPage(weeks.size - 1)
-                }
-                // Set today as the selected date
-                selectedDate.value = today
-            }) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Default.CalendarToday, // Use ImageVector for the icon
-                        contentDescription = "Scroll to Today",
-                        tint = MaterialTheme.colorScheme.secondary
-                    )
-                    Text(
-                        text = today.dayOfMonth.toString(), // Display today's day
-                        style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.secondary),
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
-            }
-
-        }
-
-
-
-
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -233,96 +219,16 @@ fun getWeeksFromToday(today: LocalDate, pastWeeksCount: Int): List<List<LocalDat
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun MonthView(selectedDate: MutableState<LocalDate>) {
+fun MonthView(
+    selectedDate: MutableState<LocalDate>,
+    pagerStateMonthView: PagerState,
+    coroutineScopeMonthView: CoroutineScope,
+    months: SnapshotStateList<YearMonth>
+) {
     val today = LocalDate.now()
-    val currentYearMonth = remember { mutableStateOf(YearMonth.from(today)) }
-    val months = remember { mutableStateListOf<YearMonth>() }
-    val coroutineScopeMonthView = rememberCoroutineScope()
 
-    if (months.isEmpty()) {
-        val startMonth = currentYearMonth.value.minusMonths(6)
-        for (i in 0..12) {
-            months.add(startMonth.plusMonths(i.toLong()))
-        }
-    }
-
-    val pagerStateMonthView = rememberPagerState(
-        initialPage = months.indexOf(currentYearMonth.value),
-        pageCount = { months.size }
-    )
 
     Column {
-        //below dispay text and row is common in monthview and weekview
-        val displayText = when {
-            selectedDate.value == today -> "Today"
-            selectedDate.value == today.plusDays(1) -> "Tomorrow"
-            else -> {
-                val dateFormat = if (selectedDate.value.year == today.year) {
-                    DateTimeFormatter.ofPattern("d MMM", Locale.getDefault())
-                } else {
-                    DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault())
-                }
-                selectedDate.value.format(dateFormat)
-            }
-        }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically  // Add this line
-
-        ) {
-            Column() {
-                Text(
-                    text = displayText,
-                    style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(
-                        start = 16.dp,
-                        end = 16.dp,
-                        top = 16.dp,
-                        bottom = 8.dp
-                    )
-                )
-
-                val weekName =
-                    selectedDate.value.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault())
-                Text(
-                    text = weekName,
-                    color = MaterialTheme.colorScheme.secondary,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Light),
-                    modifier = Modifier.padding(start = 20.dp, bottom = 16.dp)
-                )
-            }
-
-            // Add this IconButton
-            IconButton(onClick = {
-                // Scroll back to today's date
-                coroutineScopeMonthView.launch {
-                    pagerStateMonthView.animateScrollToPage(months.indexOf(YearMonth.from(today)))
-                    selectedDate.value = today
-                }
-                // Set today as the selected date
-                selectedDate.value = today
-            }) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Default.CalendarToday, // Use ImageVector for the icon
-                        contentDescription = "Scroll to Today",
-                        tint = MaterialTheme.colorScheme.secondary
-                    )
-                    Text(
-                        text = today.dayOfMonth.toString(), // Display today's day
-                        style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.secondary),
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
-            }
-
-        }
-
         // Row for displaying the month name and navigation buttons
         Row(
             modifier = Modifier
@@ -337,7 +243,8 @@ fun MonthView(selectedDate: MutableState<LocalDate>) {
                     pagerStateMonthView.animateScrollToPage(previousMonthIndex)
                 }
             }) {
-                Icon(Icons.Default.ArrowBackIos, contentDescription = "Previous Month",
+                Icon(
+                    Icons.Default.ArrowBackIos, contentDescription = "Previous Month",
                     modifier = Modifier.size(18.dp) // Adjust the size as needed
                 )
 
@@ -358,7 +265,8 @@ fun MonthView(selectedDate: MutableState<LocalDate>) {
 
             IconButton(onClick = {
                 coroutineScopeMonthView.launch {
-                    val nextMonthIndex = (pagerStateMonthView.currentPage + 1).coerceAtMost(months.size - 1)
+                    val nextMonthIndex =
+                        (pagerStateMonthView.currentPage + 1).coerceAtMost(months.size - 1)
                     pagerStateMonthView.animateScrollToPage(nextMonthIndex)
                 }
             }) {
@@ -403,11 +311,11 @@ fun MonthGrid(
         // Days grid
         val weeks = daysInMonth.chunked(7)
         weeks.forEachIndexed { index, week ->
-            Row (
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 8.dp)  // Add horizontal padding
-            ){
+            ) {
                 week.forEach { day ->
                     val isFutureDate = day.isAfter(today)
                     val interactionSource = remember { MutableInteractionSource() }
@@ -462,7 +370,84 @@ fun getDaysOfMonth(yearMonth: YearMonth): List<LocalDate> {
     val daysInMonth = ChronoUnit.DAYS.between(startOfMonth, endOfMonth) + 1
     return List(daysInMonth.toInt()) { i -> startOfMonth.plusDays(i.toLong()) }
 }
+
 fun String.toCapitalCase(): String {
     if (this.isEmpty()) return this
-    return this.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+    return this.lowercase()
+        .replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+}
+
+@Composable
+fun CalendarHeaderView(
+    selectedDate: MutableState<LocalDate>,
+    onScrollToTodayClicked: () -> Unit,
+    onExpandCollapsedClicked: () -> Unit
+) {
+    val today = LocalDate.now()
+    val displayText = when {
+        selectedDate.value == today -> "Today"
+        selectedDate.value == today.plusDays(1) -> "Tomorrow"
+        else -> {
+            val dateFormat = if (selectedDate.value.year == today.year) {
+                DateTimeFormatter.ofPattern("d MMM", Locale.getDefault())
+            } else {
+                DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault())
+            }
+            selectedDate.value.format(dateFormat)
+        }
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column {
+            Text(
+                text = displayText,
+                style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp)
+            )
+
+            val weekName =
+                selectedDate.value.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault())
+            Text(
+                text = weekName,
+                color = MaterialTheme.colorScheme.secondary,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Light),
+                modifier = Modifier.padding(start = 20.dp, bottom = 16.dp)
+            )
+        }
+
+        Row {
+            // Expand/Collapse IconButton
+            IconButton(onClick = onExpandCollapsedClicked) {
+                Icon(
+                    // Assuming you have an icon for expand/collapse
+                    imageVector = Icons.Default.ExpandMore, // Change this to your expand/collapse icon
+                    contentDescription = "Expand/Collapse",
+                    tint = MaterialTheme.colorScheme.secondary
+                )
+            }
+
+            // Scroll to Today IconButton
+            IconButton(onClick = onScrollToTodayClicked) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.CalendarToday,
+                        contentDescription = "Scroll to Today",
+                        tint = MaterialTheme.colorScheme.secondary
+                    )
+                    Text(
+                        text = today.dayOfMonth.toString(),
+                        style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.secondary),
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+            }
+        }
+    }
 }
