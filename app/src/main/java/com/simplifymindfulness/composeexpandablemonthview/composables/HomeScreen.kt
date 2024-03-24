@@ -11,8 +11,6 @@ fun HomeScreen(){
     val selectedDate = rememberSaveable { mutableStateOf(LocalDate.now()) }
     Column {
         CalendarView(selectedDate = selectedDate)
-        MonthView(selectedDate = selectedDate)
-
     }
 
 }
