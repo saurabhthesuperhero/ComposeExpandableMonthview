@@ -90,14 +90,30 @@ fun CalendarView(selectedDate: MutableState<LocalDate>) {
     CalendarHeaderView(
         selectedDate = selectedDate,
         onExpandCollapsedClicked = {
-            // This will vary based on whether the month view is expanded or not
-            if (isMonthViewExpanded.value) {
-                // Scroll month view to today
-            } else {
-                // Scroll week view to today
-            }
             // Toggle the view mode
             isMonthViewExpanded.value = !isMonthViewExpanded.value
+            // This will vary based on whether the month view is expanded or not
+            if (isMonthViewExpanded.value) {
+                coroutineScopeMonthView.launch {
+                    val selectedDateIndex = months.indexOfFirst { month ->
+                        YearMonth.from(selectedDate.value) == month
+                    }
+                    if (selectedDateIndex != -1) {
+                        pagerStateMonthView.animateScrollToPage(selectedDateIndex)
+                    }
+                }
+            } else {
+                // Scroll week view to selcted date
+                coroutineScopeWeekView.launch {
+                    val selectedDateIndex = weeks.indexOfFirst { week ->
+                        week.contains(selectedDate.value)
+                    }
+                    if (selectedDateIndex != -1) {
+                        pagerStateWeekView.scrollToPage(selectedDateIndex)
+                    }
+                }
+            }
+
         },
         onScrollToTodayClicked = {
             coroutineScopeWeekView.launch {
