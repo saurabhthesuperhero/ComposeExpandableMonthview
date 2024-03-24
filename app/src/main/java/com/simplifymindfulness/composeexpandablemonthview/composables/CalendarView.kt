@@ -63,14 +63,14 @@ fun WeekView(selectedDate: MutableState<LocalDate>) {
     val weeks = getWeeksFromToday(today, 52)
 
     //setting fort past weeks
-    val pagerState = rememberPagerState(
+    val pagerStateWeekView = rememberPagerState(
         initialPage = weeks.size - 1,  // Set to the last page
         initialPageOffsetFraction = 0f
     ) {
         weeks.size
     }
 
-    val coroutineScope = rememberCoroutineScope()
+    val coroutineScopeWeekView = rememberCoroutineScope()
 
 
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -121,8 +121,8 @@ fun WeekView(selectedDate: MutableState<LocalDate>) {
             // Add this IconButton
             IconButton(onClick = {
                 // Scroll back to today's date
-                coroutineScope.launch {
-                    pagerState.scrollToPage(weeks.size - 1)
+                coroutineScopeWeekView.launch {
+                    pagerStateWeekView.scrollToPage(weeks.size - 1)
                 }
                 // Set today as the selected date
                 selectedDate.value = today
@@ -162,7 +162,7 @@ fun WeekView(selectedDate: MutableState<LocalDate>) {
         Spacer(modifier = Modifier.height(8.dp))
 
         HorizontalPager(
-            state = pagerState,
+            state = pagerStateWeekView,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(60.dp)
@@ -237,7 +237,7 @@ fun MonthView(selectedDate: MutableState<LocalDate>) {
     val today = LocalDate.now()
     val currentYearMonth = remember { mutableStateOf(YearMonth.from(today)) }
     val months = remember { mutableStateListOf<YearMonth>() }
-    val coroutineScope = rememberCoroutineScope()
+    val coroutineScopeMonthView = rememberCoroutineScope()
 
     if (months.isEmpty()) {
         val startMonth = currentYearMonth.value.minusMonths(6)
@@ -246,12 +246,13 @@ fun MonthView(selectedDate: MutableState<LocalDate>) {
         }
     }
 
-    val pagerState = rememberPagerState(
+    val pagerStateMonthView = rememberPagerState(
         initialPage = months.indexOf(currentYearMonth.value),
         pageCount = { months.size }
     )
 
     Column {
+        //below dispay text and row is common in monthview and weekview
         val displayText = when {
             selectedDate.value == today -> "Today"
             selectedDate.value == today.plusDays(1) -> "Tomorrow"
@@ -299,8 +300,8 @@ fun MonthView(selectedDate: MutableState<LocalDate>) {
             // Add this IconButton
             IconButton(onClick = {
                 // Scroll back to today's date
-                coroutineScope.launch {
-                    pagerState.animateScrollToPage(months.indexOf(YearMonth.from(today)))
+                coroutineScopeMonthView.launch {
+                    pagerStateMonthView.animateScrollToPage(months.indexOf(YearMonth.from(today)))
                     selectedDate.value = today
                 }
                 // Set today as the selected date
@@ -331,9 +332,9 @@ fun MonthView(selectedDate: MutableState<LocalDate>) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = {
-                coroutineScope.launch {
-                    val previousMonthIndex = (pagerState.currentPage - 1).coerceAtLeast(0)
-                    pagerState.animateScrollToPage(previousMonthIndex)
+                coroutineScopeMonthView.launch {
+                    val previousMonthIndex = (pagerStateMonthView.currentPage - 1).coerceAtLeast(0)
+                    pagerStateMonthView.animateScrollToPage(previousMonthIndex)
                 }
             }) {
                 Icon(Icons.Default.ArrowBackIos, contentDescription = "Previous Month",
@@ -344,7 +345,7 @@ fun MonthView(selectedDate: MutableState<LocalDate>) {
 
             // Display the current month's name
             Text(
-                text = months[pagerState.currentPage].month.name.toCapitalCase() + " " + months[pagerState.currentPage].year,
+                text = months[pagerStateMonthView.currentPage].month.name.toCapitalCase() + " " + months[pagerStateMonthView.currentPage].year,
                 style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(
@@ -356,9 +357,9 @@ fun MonthView(selectedDate: MutableState<LocalDate>) {
             )
 
             IconButton(onClick = {
-                coroutineScope.launch {
-                    val nextMonthIndex = (pagerState.currentPage + 1).coerceAtMost(months.size - 1)
-                    pagerState.animateScrollToPage(nextMonthIndex)
+                coroutineScopeMonthView.launch {
+                    val nextMonthIndex = (pagerStateMonthView.currentPage + 1).coerceAtMost(months.size - 1)
+                    pagerStateMonthView.animateScrollToPage(nextMonthIndex)
                 }
             }) {
                 Icon(Icons.Default.ArrowForwardIos, contentDescription = "Next Month")
@@ -366,7 +367,7 @@ fun MonthView(selectedDate: MutableState<LocalDate>) {
         }
 
         HorizontalPager(
-            state = pagerState,
+            state = pagerStateMonthView,
             modifier = Modifier
                 .fillMaxWidth()
         ) { page ->
