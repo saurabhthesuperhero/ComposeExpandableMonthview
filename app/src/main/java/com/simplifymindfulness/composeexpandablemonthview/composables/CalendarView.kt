@@ -365,9 +365,7 @@ fun MonthView(selectedDate: MutableState<LocalDate>) {
                     pagerState.animateScrollToPage(nextMonthIndex)
                 }
             }) {
-                Icon(Icons.Default.ArrowForwardIos, contentDescription = "Next Month",
-                    modifier = Modifier.size(18.dp) // Adjust the size as needed
-                )
+                Icon(Icons.Default.ArrowForwardIos, contentDescription = "Next Month")
             }
         }
 
