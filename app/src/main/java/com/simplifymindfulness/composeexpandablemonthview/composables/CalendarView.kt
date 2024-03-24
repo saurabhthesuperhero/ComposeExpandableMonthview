@@ -1,6 +1,9 @@
 package com.simplifymindfulness.composeexpandablemonthview.composables
 
 import android.util.Log
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -127,10 +130,33 @@ fun CalendarView(selectedDate: MutableState<LocalDate>) {
         }
     )
 
-    if (isMonthViewExpanded.value) {
-        MonthView(selectedDate, pagerStateMonthView, coroutineScopeMonthView, months)
-    } else {
+    AnimatedVisibility(
+        visible = !isMonthViewExpanded.value,
+        enter = slideInVertically(
+            // Slide in from the top
+            initialOffsetY = { -it }
+        ),
+        exit = slideOutVertically(
+            // Slide out to the bottom
+            targetOffsetY = { it }
+        )
+    ) {
         WeekView(selectedDate, pagerStateWeekView, coroutineScopeWeekView, weeks)
+    }
+
+    // Animated visibility for MonthView
+    AnimatedVisibility(
+        visible = isMonthViewExpanded.value,
+        enter = slideInVertically(
+            // Slide in from the bottom
+            initialOffsetY = { it }
+        ),
+        exit = slideOutVertically(
+            // Slide out to the top
+            targetOffsetY = { -it }
+        )
+    ) {
+        MonthView(selectedDate, pagerStateMonthView, coroutineScopeMonthView, months)
     }
 }
 
