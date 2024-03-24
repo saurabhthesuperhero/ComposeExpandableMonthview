@@ -153,7 +153,7 @@ fun CalendarView(selectedDate: MutableState<LocalDate>) {
         ),
         exit = slideOutVertically(
             // Slide out to the top
-            targetOffsetY = { -it }
+//            targetOffsetY = { -it }
         )
     ) {
         MonthView(selectedDate, pagerStateMonthView, coroutineScopeMonthView, months)
