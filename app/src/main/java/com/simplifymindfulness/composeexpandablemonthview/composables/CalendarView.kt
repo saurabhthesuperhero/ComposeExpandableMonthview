@@ -89,9 +89,9 @@ fun CalendarView(
         }
     }
 
-    val pagerStateMonthView = rememberPagerState(
-        initialPage = months.indexOf(currentYearMonth.value),
-        pageCount = { months.size })
+    val pagerStateMonthView =
+        rememberPagerState(initialPage = months.indexOf(currentYearMonth.value),
+            pageCount = { months.size })
 
     CalendarHeaderView(selectedDate = selectedDate, onExpandCollapsedClicked = {
         // Toggle the view mode
@@ -397,9 +397,14 @@ fun MonthGrid(
                 )
             }
         }
+        val startDayOfWeek = daysInMonth.first().dayOfWeek.value % 7 // Adjust for Sunday start
+        val placeholders = mutableListOf<LocalDate?>().apply {
+            repeat(startDayOfWeek) { add(null) } // Add placeholders
+        }
 
-        // Days grid
-        val weeks = daysInMonth.chunked(7)
+        // Combine placeholders with actual days
+        val combinedDays = placeholders.plus(daysInMonth)
+        val weeks = combinedDays.chunked(7)
         weeks.forEachIndexed { index, week ->
             Row(
                 modifier = Modifier
@@ -407,86 +412,91 @@ fun MonthGrid(
                     .padding(horizontal = 8.dp)  // Add horizontal padding
             ) {
                 week.forEach { date ->
-                    val isFutureDate = date.isAfter(today)
-                    val interactionSource = remember { MutableInteractionSource() }
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp)  // Add a fixed height
-                            .clip(CircleShape)
-                            .background(
-                                if (date == selectedDate.value) MaterialTheme.colorScheme.primaryContainer  // Non-active color for future dates
-                                else Color.Transparent
-                            )
-                            .clickable(
-                                enabled = !isFutureDate,  // Disable click for future dates
-                                interactionSource = interactionSource, indication = null
-                            ) {
-                                if (!isFutureDate) {
-                                    selectedDate.value = date
-                                }
-                            }, contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    if (date != null) {
 
-                            Text(
-                                text = date.dayOfMonth.toString(),
-                                color = if (isFutureDate) MaterialTheme.colorScheme.onSurface.copy(
-                                    alpha = 0.6f
-                                ) else if (date == today) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface,
-                                fontWeight = if (date == today) FontWeight.Bold else FontWeight.Normal
-                            )
-
-                            if (events[date] != null) {
-                                when (val count = events[date]!!) {
-                                    1 -> Box(
-                                        modifier = Modifier
-                                            .size(4.dp)
-                                            .clip(CircleShape)
-                                            .background(MaterialTheme.colorScheme.secondary)
-                                    )
-
-                                    2 -> Row {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(4.dp)
-                                                .clip(CircleShape)
-                                                .background(MaterialTheme.colorScheme.secondary)
-                                        )
-                                        Spacer(modifier = Modifier.width(2.dp))
-                                        Box(
-                                            modifier = Modifier
-                                                .size(4.dp)
-                                                .clip(CircleShape)
-                                                .background(MaterialTheme.colorScheme.secondary)
-                                        )
+                        val isFutureDate = date.isAfter(today)
+                        val interactionSource = remember { MutableInteractionSource() }
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp)  // Add a fixed height
+                                .clip(CircleShape)
+                                .background(
+                                    if (date == selectedDate.value) MaterialTheme.colorScheme.primaryContainer  // Non-active color for future dates
+                                    else Color.Transparent
+                                )
+                                .clickable(
+                                    enabled = !isFutureDate,  // Disable click for future dates
+                                    interactionSource = interactionSource, indication = null
+                                ) {
+                                    if (!isFutureDate) {
+                                        selectedDate.value = date
                                     }
+                                }, contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
 
-                                    else -> Row {
-                                        Box(
+                                Text(
+                                    text = date.dayOfMonth.toString(),
+                                    color = if (isFutureDate) MaterialTheme.colorScheme.onSurface.copy(
+                                        alpha = 0.6f
+                                    ) else if (date == today) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface,
+                                    fontWeight = if (date == today) FontWeight.Bold else FontWeight.Normal
+                                )
+
+                                if (events[date] != null) {
+                                    when (val count = events[date]!!) {
+                                        1 -> Box(
                                             modifier = Modifier
                                                 .size(4.dp)
                                                 .clip(CircleShape)
                                                 .background(MaterialTheme.colorScheme.secondary)
                                         )
-                                        Spacer(modifier = Modifier.width(2.dp))
-                                        Box(
-                                            modifier = Modifier
-                                                .size(4.dp)
-                                                .clip(CircleShape)
-                                                .background(MaterialTheme.colorScheme.secondary)
-                                        )
-                                        Spacer(modifier = Modifier.width(2.dp))
-                                        Box(
-                                            modifier = Modifier
-                                                .size(4.dp)
-                                                .clip(RectangleShape)
-                                                .background(MaterialTheme.colorScheme.secondary)
-                                        )
+
+                                        2 -> Row {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(4.dp)
+                                                    .clip(CircleShape)
+                                                    .background(MaterialTheme.colorScheme.secondary)
+                                            )
+                                            Spacer(modifier = Modifier.width(2.dp))
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(4.dp)
+                                                    .clip(CircleShape)
+                                                    .background(MaterialTheme.colorScheme.secondary)
+                                            )
+                                        }
+
+                                        else -> Row {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(4.dp)
+                                                    .clip(CircleShape)
+                                                    .background(MaterialTheme.colorScheme.secondary)
+                                            )
+                                            Spacer(modifier = Modifier.width(2.dp))
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(4.dp)
+                                                    .clip(CircleShape)
+                                                    .background(MaterialTheme.colorScheme.secondary)
+                                            )
+                                            Spacer(modifier = Modifier.width(2.dp))
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(4.dp)
+                                                    .clip(RectangleShape)
+                                                    .background(MaterialTheme.colorScheme.secondary)
+                                            )
+                                        }
                                     }
                                 }
                             }
                         }
+                    } else {
+                        Spacer(modifier = Modifier.weight(1f)) // Placeholder for empty days
                     }
                 }
                 // If this is the last week, add empty boxes for remaining days
