@@ -230,7 +230,7 @@ fun WeekView(
                         Text(
                             text = date.dayOfMonth.toString(),
                             textAlign = TextAlign.Center,
-                            color = if (isFutureDate) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) else if (date == today) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onSurface  // Change text color for future dates,
+                            color = if (isFutureDate) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) else if (date == today) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface  // Change text color for future dates,
                             , fontWeight = if (date == today) FontWeight.Bold else FontWeight.Normal
 
 
@@ -275,7 +275,7 @@ fun MonthView(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(horizontal = 16.dp, vertical = 2.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -295,7 +295,7 @@ fun MonthView(
             // Display the current month's name
             Text(
                 text = months[pagerStateMonthView.currentPage].month.name.toCapitalCase() + " " + months[pagerStateMonthView.currentPage].year,
-                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(
                     start = 16.dp,
@@ -312,7 +312,9 @@ fun MonthView(
                     pagerStateMonthView.animateScrollToPage(nextMonthIndex)
                 }
             }) {
-                Icon(Icons.Default.ArrowForwardIos, contentDescription = "Next Month")
+                Icon(Icons.Default.ArrowForwardIos, contentDescription = "Next Month",
+                    modifier = Modifier.size(18.dp) // Adjust the size as needed
+                )
             }
         }
 
@@ -383,7 +385,7 @@ fun MonthGrid(
                     ) {
                         Text(
                             text = day.dayOfMonth.toString(),
-                            color = if (isFutureDate) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) else if (day == today) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onSurface,
+                            color = if (isFutureDate) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) else if (day == today) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface,
                             fontWeight = if (day == today) FontWeight.Bold else FontWeight.Normal
                         )
                     }
