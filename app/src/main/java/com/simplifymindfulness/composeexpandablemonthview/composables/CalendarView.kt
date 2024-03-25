@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
@@ -42,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -57,7 +59,9 @@ import java.util.Locale
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun CalendarView(selectedDate: MutableState<LocalDate>) {
+fun CalendarView(
+    selectedDate: MutableState<LocalDate>, events: Map<LocalDate, Int> = emptyMap() // Add this line
+) {
     val isMonthViewExpanded = remember { mutableStateOf(false) }
     val today = LocalDate.now()
 
@@ -87,76 +91,64 @@ fun CalendarView(selectedDate: MutableState<LocalDate>) {
 
     val pagerStateMonthView = rememberPagerState(
         initialPage = months.indexOf(currentYearMonth.value),
-        pageCount = { months.size }
-    )
+        pageCount = { months.size })
 
-    CalendarHeaderView(
-        selectedDate = selectedDate,
-        onExpandCollapsedClicked = {
-            // Toggle the view mode
-            isMonthViewExpanded.value = !isMonthViewExpanded.value
-            // This will vary based on whether the month view is expanded or not
-            if (isMonthViewExpanded.value) {
-                coroutineScopeMonthView.launch {
-                    val selectedDateIndex = months.indexOfFirst { month ->
-                        YearMonth.from(selectedDate.value) == month
-                    }
-                    if (selectedDateIndex != -1) {
-                        pagerStateMonthView.animateScrollToPage(selectedDateIndex)
-                    }
-                }
-            } else {
-                // Scroll week view to selcted date
-                coroutineScopeWeekView.launch {
-                    val selectedDateIndex = weeks.indexOfFirst { week ->
-                        week.contains(selectedDate.value)
-                    }
-                    if (selectedDateIndex != -1) {
-                        pagerStateWeekView.scrollToPage(selectedDateIndex)
-                    }
-                }
-            }
-
-        },
-        onScrollToTodayClicked = {
-            coroutineScopeWeekView.launch {
-                pagerStateWeekView.scrollToPage(weeks.size - 1)
-            }
+    CalendarHeaderView(selectedDate = selectedDate, onExpandCollapsedClicked = {
+        // Toggle the view mode
+        isMonthViewExpanded.value = !isMonthViewExpanded.value
+        // This will vary based on whether the month view is expanded or not
+        if (isMonthViewExpanded.value) {
             coroutineScopeMonthView.launch {
-                pagerStateMonthView.animateScrollToPage(months.indexOf(YearMonth.from(today)))
-                selectedDate.value = today
+                val selectedDateIndex = months.indexOfFirst { month ->
+                    YearMonth.from(selectedDate.value) == month
+                }
+                if (selectedDateIndex != -1) {
+                    pagerStateMonthView.animateScrollToPage(selectedDateIndex)
+                }
             }
-
+        } else {
+            // Scroll week view to selcted date
+            coroutineScopeWeekView.launch {
+                val selectedDateIndex = weeks.indexOfFirst { week ->
+                    week.contains(selectedDate.value)
+                }
+                if (selectedDateIndex != -1) {
+                    pagerStateWeekView.scrollToPage(selectedDateIndex)
+                }
+            }
         }
-    )
+
+    }, onScrollToTodayClicked = {
+        coroutineScopeWeekView.launch {
+            pagerStateWeekView.scrollToPage(weeks.size - 1)
+        }
+        coroutineScopeMonthView.launch {
+            pagerStateMonthView.animateScrollToPage(months.indexOf(YearMonth.from(today)))
+            selectedDate.value = today
+        }
+
+    })
 
     AnimatedVisibility(
-        visible = !isMonthViewExpanded.value,
-        enter = slideInVertically(
+        visible = !isMonthViewExpanded.value, enter = slideInVertically(
             // Slide in from the top
-            initialOffsetY = { -it }
-        ),
-        exit = slideOutVertically(
+            initialOffsetY = { -it }), exit = slideOutVertically(
             // Slide out to the bottom
-            targetOffsetY = { it }
-        )
+            targetOffsetY = { it })
     ) {
-        WeekView(selectedDate, pagerStateWeekView, coroutineScopeWeekView, weeks)
+        WeekView(selectedDate, pagerStateWeekView, coroutineScopeWeekView, weeks, events)
     }
 
     // Animated visibility for MonthView
     AnimatedVisibility(
-        visible = isMonthViewExpanded.value,
-        enter = slideInVertically(
+        visible = isMonthViewExpanded.value, enter = slideInVertically(
             // Slide in from the bottom
-            initialOffsetY = { it }
-        ),
-        exit = slideOutVertically(
+            initialOffsetY = { it }), exit = slideOutVertically(
             // Slide out to the top
 //            targetOffsetY = { -it }
         )
     ) {
-        MonthView(selectedDate, pagerStateMonthView, coroutineScopeMonthView, months)
+        MonthView(selectedDate, pagerStateMonthView, coroutineScopeMonthView, months, events)
     }
 }
 
@@ -166,7 +158,8 @@ fun WeekView(
     selectedDate: MutableState<LocalDate>,
     pagerStateWeekView: PagerState,
     coroutineScopeWeekView: CoroutineScope,
-    weeks: List<List<LocalDate>>
+    weeks: List<List<LocalDate>>,
+    events: Map<LocalDate, Int>
 ) {
     val today = LocalDate.now()
     Log.e("TAG", "CalendarView: $today")
@@ -181,17 +174,14 @@ fun WeekView(
         ) {
             listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat").forEach { day ->
                 Text(
-                    text = day,
-                    modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.Center
+                    text = day, modifier = Modifier.weight(1f), textAlign = TextAlign.Center
                 )
             }
         }
         Spacer(modifier = Modifier.height(8.dp))
 
         HorizontalPager(
-            state = pagerStateWeekView,
-            modifier = Modifier
+            state = pagerStateWeekView, modifier = Modifier
                 .fillMaxWidth()
                 .height(60.dp)
         ) { page ->
@@ -206,35 +196,86 @@ fun WeekView(
                     val isFutureDate = date.isAfter(today)  // Check if the date is in the future
 
                     val interactionSource = remember { MutableInteractionSource() }
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp)  // Add a fixed height
-                            .clip(CircleShape)
-                            .clickable(
-                                enabled = !isFutureDate,  // Disable click for future dates
-                                interactionSource = interactionSource,
-                                indication = null
-                            ) {
-                                if (!isFutureDate) {
-                                    selectedDate.value = date
+                    Box(modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp)  // Add a fixed height
+                        .clip(CircleShape)
+                        .clickable(
+                            enabled = !isFutureDate,  // Disable click for future dates
+                            interactionSource = interactionSource, indication = null
+                        ) {
+                            if (!isFutureDate) {
+                                selectedDate.value = date
+                            }
+                        }
+                        .background(
+                            if (date == selectedDate.value) MaterialTheme.colorScheme.primaryContainer  // Non-active color for future dates
+                            else Color.Transparent
+                        ),
+
+                        contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+
+                            Text(
+                                text = date.dayOfMonth.toString(),
+                                textAlign = TextAlign.Center,
+                                color = if (isFutureDate) MaterialTheme.colorScheme.onSurface.copy(
+                                    alpha = 0.6f
+                                ) else if (date == today) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface  // Change text color for future dates,
+                                ,
+                                fontWeight = if (date == today) FontWeight.Bold else FontWeight.Normal
+                            )
+
+                            if (events[date] != null) {
+                                when (val count = events[date]!!) {
+                                    1 -> Box(
+                                        modifier = Modifier
+                                            .size(4.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.secondary)
+                                    )
+
+                                    2 -> Row {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(4.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.secondary)
+                                        )
+                                        Spacer(modifier = Modifier.width(2.dp))
+                                        Box(
+                                            modifier = Modifier
+                                                .size(4.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.secondary)
+                                        )
+                                    }
+
+                                    else -> Row {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(4.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.secondary)
+                                        )
+                                        Spacer(modifier = Modifier.width(2.dp))
+                                        Box(
+                                            modifier = Modifier
+                                                .size(4.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.secondary)
+                                        )
+                                        Spacer(modifier = Modifier.width(2.dp))
+                                        Box(
+                                            modifier = Modifier
+                                                .size(4.dp)
+                                                .clip(RectangleShape)
+                                                .background(MaterialTheme.colorScheme.secondary)
+                                        )
+                                    }
                                 }
                             }
-                            .background(
-                                if (date == selectedDate.value) MaterialTheme.colorScheme.primaryContainer  // Non-active color for future dates
-                                else Color.Transparent
-                            ),
-
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = date.dayOfMonth.toString(),
-                            textAlign = TextAlign.Center,
-                            color = if (isFutureDate) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) else if (date == today) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface  // Change text color for future dates,
-                            , fontWeight = if (date == today) FontWeight.Bold else FontWeight.Normal
-
-
-                        )
+                        }
                     }
                 }
             }
@@ -265,7 +306,8 @@ fun MonthView(
     selectedDate: MutableState<LocalDate>,
     pagerStateMonthView: PagerState,
     coroutineScopeMonthView: CoroutineScope,
-    months: SnapshotStateList<YearMonth>
+    months: SnapshotStateList<YearMonth>,
+    events: Map<LocalDate, Int>
 ) {
     val today = LocalDate.now()
 
@@ -286,7 +328,8 @@ fun MonthView(
                 }
             }) {
                 Icon(
-                    Icons.Default.ArrowBackIos, contentDescription = "Previous Month",
+                    Icons.Default.ArrowBackIos,
+                    contentDescription = "Previous Month",
                     modifier = Modifier.size(18.dp) // Adjust the size as needed
                 )
 
@@ -298,10 +341,7 @@ fun MonthView(
                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(
-                    start = 16.dp,
-                    end = 16.dp,
-                    top = 16.dp,
-                    bottom = 8.dp
+                    start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp
                 )
             )
 
@@ -312,20 +352,25 @@ fun MonthView(
                     pagerStateMonthView.animateScrollToPage(nextMonthIndex)
                 }
             }) {
-                Icon(Icons.Default.ArrowForwardIos, contentDescription = "Next Month",
+                Icon(
+                    Icons.Default.ArrowForwardIos,
+                    contentDescription = "Next Month",
                     modifier = Modifier.size(18.dp) // Adjust the size as needed
                 )
             }
         }
 
         HorizontalPager(
-            state = pagerStateMonthView,
-            modifier = Modifier
-                .fillMaxWidth()
+            state = pagerStateMonthView, modifier = Modifier.fillMaxWidth()
         ) { page ->
             val month = months[page]
             val daysInMonth = getDaysOfMonth(month)
-            MonthGrid(daysInMonth = daysInMonth, selectedDate = selectedDate, today = today)
+            MonthGrid(
+                daysInMonth = daysInMonth,
+                selectedDate = selectedDate,
+                today = today,
+                events = events
+            )
         }
 
 
@@ -336,7 +381,8 @@ fun MonthView(
 fun MonthGrid(
     daysInMonth: List<LocalDate>,
     selectedDate: MutableState<LocalDate>,
-    today: LocalDate
+    today: LocalDate,
+    events: Map<LocalDate, Int>
 ) {
     Column {
         // Display days of the week headers
@@ -360,8 +406,8 @@ fun MonthGrid(
                     .fillMaxWidth()
                     .padding(horizontal = 8.dp)  // Add horizontal padding
             ) {
-                week.forEach { day ->
-                    val isFutureDate = day.isAfter(today)
+                week.forEach { date ->
+                    val isFutureDate = date.isAfter(today)
                     val interactionSource = remember { MutableInteractionSource() }
                     Box(
                         modifier = Modifier
@@ -369,25 +415,78 @@ fun MonthGrid(
                             .height(48.dp)  // Add a fixed height
                             .clip(CircleShape)
                             .background(
-                                if (day == selectedDate.value) MaterialTheme.colorScheme.primaryContainer  // Non-active color for future dates
+                                if (date == selectedDate.value) MaterialTheme.colorScheme.primaryContainer  // Non-active color for future dates
                                 else Color.Transparent
                             )
                             .clickable(
                                 enabled = !isFutureDate,  // Disable click for future dates
-                                interactionSource = interactionSource,
-                                indication = null
+                                interactionSource = interactionSource, indication = null
                             ) {
                                 if (!isFutureDate) {
-                                    selectedDate.value = day
+                                    selectedDate.value = date
                                 }
-                            },
-                        contentAlignment = Alignment.Center
+                            }, contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = day.dayOfMonth.toString(),
-                            color = if (isFutureDate) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) else if (day == today) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface,
-                            fontWeight = if (day == today) FontWeight.Bold else FontWeight.Normal
-                        )
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+
+                            Text(
+                                text = date.dayOfMonth.toString(),
+                                color = if (isFutureDate) MaterialTheme.colorScheme.onSurface.copy(
+                                    alpha = 0.6f
+                                ) else if (date == today) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface,
+                                fontWeight = if (date == today) FontWeight.Bold else FontWeight.Normal
+                            )
+
+                            if (events[date] != null) {
+                                when (val count = events[date]!!) {
+                                    1 -> Box(
+                                        modifier = Modifier
+                                            .size(4.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.secondary)
+                                    )
+
+                                    2 -> Row {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(4.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.secondary)
+                                        )
+                                        Spacer(modifier = Modifier.width(2.dp))
+                                        Box(
+                                            modifier = Modifier
+                                                .size(4.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.secondary)
+                                        )
+                                    }
+
+                                    else -> Row {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(4.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.secondary)
+                                        )
+                                        Spacer(modifier = Modifier.width(2.dp))
+                                        Box(
+                                            modifier = Modifier
+                                                .size(4.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.secondary)
+                                        )
+                                        Spacer(modifier = Modifier.width(2.dp))
+                                        Box(
+                                            modifier = Modifier
+                                                .size(4.dp)
+                                                .clip(RectangleShape)
+                                                .background(MaterialTheme.colorScheme.secondary)
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
                 // If this is the last week, add empty boxes for remaining days
